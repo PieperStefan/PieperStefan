@@ -104,6 +104,12 @@ hergibt: eine Linie von 0,4 mm Strichstärke ist im Realmaß bereits 4 cm breit.
   Oberflächentexturen). Pixelbilder lassen sich nicht in DXF-Vektoren
   überführen und fehlen deshalb. Die Bauzeichnung selbst ist vollständig.
 
+## Kontrollansichten
+
+`vorschau/erdgeschoss.png` zeigt das fertige DXF komplett,
+`vorschau/erdgeschoss_ohne_bemassung.png` dasselbe mit ausgeschalteten
+Layern `07_Bemassung`, `10_Text` und `12_Plankopf`.
+
 ## Neu erzeugen
 
 ```bash
