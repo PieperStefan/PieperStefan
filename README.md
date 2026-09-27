@@ -119,6 +119,13 @@ hergibt: eine Linie von 0,4 mm Strichstärke ist im Realmaß bereits 4 cm breit.
   Oberflächentexturen). Pixelbilder lassen sich nicht in DXF-Vektoren
   überführen und fehlen deshalb. Die Bauzeichnung selbst ist vollständig.
 
+## Sweet Home 3D
+
+Sweet Home 3D öffnet keine DXF-Zeichnungen, sondern nimmt als Vorlage ein
+Bild. Der Ordner `sweethome3d/` enthält die sechs Geschosse als PNG mit
+exakt 100 Pixel je Meter und einem eingezeichneten 10-Meter-Maßstabsbalken.
+Einzelheiten in `sweethome3d/LIESMICH.md`.
+
 ## Kontrollansichten
 
 `vorschau/erdgeschoss.png` zeigt das fertige DXF komplett,
