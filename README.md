@@ -13,12 +13,27 @@ wurde direkt übernommen und maßstäblich umgerechnet.
 |---|---|
 | Einheit | Millimeter (`$INSUNITS = 4`), 1 Zeichnungseinheit = 1 mm |
 | Maßstab | Realmaß 1:1 — der Plan 1:100 ist auf wahre Größe hochgerechnet |
-| DXF-Version | AC1032 (AutoCAD 2018), von jedem gängigen Programm lesbar |
+| DXF-Version | `dxf/` = AC1032 (AutoCAD 2018), `dxf-r2000/` = AC1015 (AutoCAD 2000) |
 | Nullpunkt | linke untere Ecke des DIN-A3-Blatts |
 
 **Alle Geschosse liegen im selben Koordinatensystem.** Die Grundrisse lassen
 sich direkt übereinanderlegen: die linke Gebäudekante sitzt in Keller-, Erd-,
 1. und 2. Obergeschoss jeweils millimetergenau an derselben Stelle.
+
+## Zwei Fassungen
+
+Der Ordner `dxf/` enthält DXF 2018. Das lesen ArchiCAD, Vectorworks,
+BricsCAD, Rhino und AutoCAD problemlos.
+
+Der Ordner `dxf-r2000/` enthält dieselben 19 Zeichnungen als DXF 2000 —
+das älteste Format, das alles Nötige kann, und damit das verträglichste.
+Für QCAD, LibreCAD und andere freie Programme diese Fassung nehmen.
+
+Die Geometrie ist in beiden Fassungen bis auf die letzte Nachkommastelle
+identisch. Ein Unterschied: DXF 2000 kennt keine Transparenz, deshalb ist
+dort der Layer `11_Sonstiges` mit der rosa Planungsfläche ab Werk
+ausgeschaltet — eingeschaltet würde die Fläche deckend über allem liegen.
+Auch die Layerbeschreibungen fehlen in DXF 2000, die Layernamen bleiben.
 
 ## Dateien
 
@@ -119,3 +134,5 @@ python3 tools/pdf2dxf.py bauantragszeichnungen.pdf \
 ```
 
 `--scale` ist der Nenner des Planmaßstabs (100 für 1:100, 50 für 1:50).
+Mit `--dxfversion R2000` entsteht die verträglichere Fassung für ältere
+Programme, ohne die Angabe wird DXF 2018 geschrieben.

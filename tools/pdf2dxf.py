@@ -448,15 +448,16 @@ def lineweight(width_pt):
 # ---------------------------------------------------------------- Konvertierung
 
 class Converter:
-    def __init__(self, page, scale_denom):
+    def __init__(self, page, scale_denom, dxfversion="R2018"):
         self.page = page
+        self.dxfversion = dxfversion
         self.S = PT_TO_MM * scale_denom          # pt -> mm Realmass
         self.H = page.rect.height
         self.W = page.rect.width
         self.marks = DimMarks(collect_marks(page))
         self.marks.set_dim_lines(self._prescan_dim_lines())
         self.plankopf_x = find_plankopf_x(page)
-        self.doc = ezdxf.new("R2018", setup=True)
+        self.doc = ezdxf.new(self.dxfversion, setup=True)
         self.msp = self.doc.modelspace()
         self.stats = {}
         self._ltypes = set()
@@ -473,8 +474,12 @@ class Converter:
         d.header["$LTSCALE"] = 50.0
         for ld in LAYERS:
             lay = d.layers.add(ld.name, color=ld.aci)
-            lay.description = ld.description
+            if d.dxfversion > "AC1015":
+                lay.description = ld.description
             if ld.name == "09_Weissflaechen":
+                lay.off()
+            # Ohne Transparenz (vor R2004) wuerden die Tonflaechen alles zudecken
+            if ld.name == "11_Sonstiges" and d.dxfversion <= "AC1015":
                 lay.off()
         d.styles.add("PLAN", font="arial.ttf")
 
@@ -571,7 +576,7 @@ class Converter:
             h = self.msp.add_hatch(dxfattribs={"layer": lay, "color": 256})
             h.set_solid_fill()
             h.dxf.hatch_style = 0
-            if opacity < 0.9:
+            if opacity < 0.9 and self.doc.dxfversion > "AC1015":
                 h.transparency = round(1.0 - opacity, 2)
             self._hatches.append(h)
             pts = [self.xy(p) for p in s]
@@ -683,9 +688,9 @@ class Converter:
         self.doc.saveas(out)
 
 
-def convert(pdf_path, page_no, scale_denom, outdir, name):
+def convert(pdf_path, page_no, scale_denom, outdir, name, dxfversion="R2018"):
     doc = pymupdf.open(pdf_path)
-    conv = Converter(doc[page_no - 1], scale_denom)
+    conv = Converter(doc[page_no - 1], scale_denom, dxfversion)
     conv.run_paths()
     conv.run_text()
     out = os.path.join(outdir, f"{name}.dxf")
@@ -700,6 +705,8 @@ def main():
     ap.add_argument("--scale", type=float, default=100.0, help="Nenner des Planmassstabs")
     ap.add_argument("--outdir", default=".")
     ap.add_argument("--names", default="", help="Dateinamen je Seite, kommagetrennt")
+    ap.add_argument("--dxfversion", default="R2018",
+                    help="DXF-Version, z.B. R2018 (Standard) oder R2000 fuer aeltere Programme")
     args = ap.parse_args()
 
     os.makedirs(args.outdir, exist_ok=True)
@@ -708,7 +715,7 @@ def main():
 
     for k, pno in enumerate(pages):
         name = names[k] if k < len(names) and names[k] else f"Seite_{pno:02d}"
-        out, stats = convert(args.pdf, pno, args.scale, args.outdir, name)
+        out, stats = convert(args.pdf, pno, args.scale, args.outdir, name, args.dxfversion)
         print(f"\n{out}")
         for lay in sorted(stats):
             print(f"   {lay:<24} {stats[lay]:>6}")
