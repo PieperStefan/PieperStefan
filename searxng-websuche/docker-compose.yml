@@ -1,0 +1,35 @@
+# SearXNG - eigene Metasuchmaschine, ohne Konto, ohne Schluessel, ohne Kosten.
+# Laeuft neben Ollama und Open WebUI auf dem Mac Studio.
+#
+#   docker compose up -d
+#
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    restart: unless-stopped
+    ports:
+      # Nur lokal erreichbar. Fuer Zugriff aus dem Tailnet: "0.0.0.0:8088:8080"
+      - "127.0.0.1:8088:8080"
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8088/
+      - SEARXNG_SECRET=${SEARXNG_SECRET:?Bitte .env anlegen - siehe LIESMICH.md}
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "1"
+    networks:
+      - suche
+
+networks:
+  suche:
+    name: suche

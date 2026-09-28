@@ -1,0 +1,25 @@
+# Minimalkonfiguration fuer den Betrieb hinter Open WebUI.
+# Alles nicht Aufgefuehrte kommt aus den Standardwerten von SearXNG.
+use_default_settings: true
+
+server:
+  bind_address: "0.0.0.0"
+  port: 8080
+  secret_key: "wird-aus-SEARXNG_SECRET-gesetzt"
+  # Der Limiter blockt automatisierte Abfragen - fuer eine private
+  # Instanz hinter Open WebUI muss er aus, sonst kommen leere Ergebnisse.
+  limiter: false
+  image_proxy: true
+
+search:
+  safe_search: 0
+  default_lang: "de"
+  # Entscheidend: ohne "json" antwortet SearXNG dem Open WebUI mit 403,
+  # und die Web-Suche liefert stumm nichts.
+  formats:
+    - html
+    - json
+
+ui:
+  default_locale: de
+
