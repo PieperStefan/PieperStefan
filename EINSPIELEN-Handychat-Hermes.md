@@ -87,16 +87,45 @@ Seiten grundsätzlich nicht frei, egal welcher Browser, egal welche
 Einstellung. Nur `localhost` ist ausgenommen — und vom iPhone aus ist
 dieser Mac nicht localhost.
 
-Wir haben Tailscale, das löst es ohne Zertifikatswarnung:
+Wir haben Tailscale, das löst es ohne Zertifikatswarnung.
+
+**Wichtig: Auf dem Mac Studio laufen viele andere Dienste. Es darf nichts
+davon beeinträchtigt werden.**
+
+Sieh deshalb zuerst nach, was bereits ausgeliefert wird, und ändere
+nichts Bestehendes:
 
 ```bash
-tailscale serve --help                       # Syntax je nach Version prüfen
-tailscale serve --bg http://localhost:5108
-tailscale serve status
+ssh mac-studio.tail0b9854.ts.net 'tailscale serve status'
 ```
 
-Danach ist die Seite unter `https://mac-studio.tail0b9854.ts.net/`
+Gib Hermes dann einen **eigenen HTTPS-Port**, statt die Wurzeladresse zu
+belegen. So bleibt `https://mac-studio.tail0b9854.ts.net/` frei für
+anderes:
+
+```bash
+ssh mac-studio.tail0b9854.ts.net 'tailscale serve --help'   # Syntax der Version prüfen
+ssh mac-studio.tail0b9854.ts.net 'sudo tailscale serve --bg --https=8443 http://127.0.0.1:5108'
+ssh mac-studio.tail0b9854.ts.net 'tailscale serve status'
+```
+
+Danach ist Hermes unter `https://mac-studio.tail0b9854.ts.net:8443/`
 erreichbar, mit gültigem Zertifikat.
+
+Benutze **nicht** `--set-path`. Pfad-Einhängung funktioniert nur bei
+Anwendungen, die für einen Unterpfad gebaut sind; Hermes lädt seine
+Dateien mit hoher Wahrscheinlichkeit über absolute Pfade und wäre dann
+kaputt.
+
+Alle anderen Dienste bleiben unverändert über ihre bisherigen Ports
+erreichbar — `tailscale serve` stellt nur eine zusätzliche Tür davor und
+nimmt nichts weg.
+
+Rückgängig machen ginge mit:
+
+```bash
+sudo tailscale serve --https=8443 off
+```
 
 Voraussetzung: Im Tailscale-Adminbereich muss unter DNS die Option
 "HTTPS Certificates" eingeschaltet sein. Prüfe, ob es klappt — wenn
@@ -105,8 +134,11 @@ nicht, sag mir Bescheid, das muss ich im Browser klicken.
 Prüfen:
 
 ```bash
-curl -sI https://mac-studio.tail0b9854.ts.net/ | head -3
+ssh mac-studio.tail0b9854.ts.net 'curl -sI https://mac-studio.tail0b9854.ts.net:8443/ | head -3'
 ```
+
+Prüfe außerdem, dass die anderen Dienste unverändert laufen — zähle in
+`tailscale serve status` die Einträge vorher und nachher.
 
 ---
 
@@ -159,8 +191,8 @@ gewählt, bitte nicht verkleinern.
 Dienst neu starten, dann:
 
 ```bash
-curl -s https://mac-studio.tail0b9854.ts.net/ | grep -i -o "<title>[^<]*</title>"
-curl -s https://mac-studio.tail0b9854.ts.net/ | grep -c "mikrofon.js"
+curl -s https://mac-studio.tail0b9854.ts.net:8443/ | grep -i -o "<title>[^<]*</title>"
+curl -s https://mac-studio.tail0b9854.ts.net:8443/ | grep -c "mikrofon.js"
 ```
 
 Erwartet: `Handychat Hermes` und eine 1.
@@ -177,8 +209,10 @@ nicht überschreibt.
 - ob die SSH-Verbindung zum Mac Studio steht
 - wo die Anwendung liegt und wie der Dienst neu gestartet wird
 - welche Dateien du geändert hast
-- ob HTTPS über Tailscale steht und unter welcher Adresse ich die Seite
-  ab jetzt aufrufe
+- ob HTTPS über Tailscale steht und unter welcher Adresse samt Port ich
+  die Seite ab jetzt aufrufe
+- die Ausgabe von `tailscale serve status` vorher und nachher, damit ich
+  sehe, dass an den anderen Diensten nichts verändert wurde
 - ob du Selektoren im CONFIG-Block anpassen musstest
 - ob ich den Verweis auf meinem iPhone-Homescreen neu anlegen muss
 
