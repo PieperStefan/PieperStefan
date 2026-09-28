@@ -51,6 +51,18 @@
     return document.querySelector(CONFIG.sendenKnopf);
   }
 
+  function gemeinsamerBehaelter(a, b) {
+    // Die Zeile ist das Element, das Eingabefeld UND Senden-Knopf traegt.
+    // Steckt das Feld in einer eigenen Huelle, ist dessen parentNode eben
+    // NICHT die Zeile - genau daran ist die vorige Fassung gescheitert.
+    if (!a) return null;
+    if (!b) return a.parentNode;
+    const kette = new Set();
+    for (let n = a; n; n = n.parentNode) kette.add(n);
+    for (let n = b; n; n = n.parentNode) if (kette.has(n)) return n;
+    return a.parentNode;
+  }
+
   function stilAnlegen() {
     if (document.getElementById("mikrofon-stil")) return;
     const s = document.createElement("style");
@@ -187,7 +199,7 @@
     // Spaltenbreite, sonst reicht ein Block-Element mit 100 Prozent.
     const leiste = document.createElement("div");
     leiste.className = "mikrofon-leiste";
-    const eltern = feld.parentNode;
+    const eltern = gemeinsamerBehaelter(feld, knopfFinden()) || feld.parentNode;
     eltern.insertBefore(leiste, eltern.firstChild);
     try {
       const stil = getComputedStyle(eltern);
