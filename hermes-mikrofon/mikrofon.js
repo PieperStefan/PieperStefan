@@ -119,10 +119,42 @@
     box.textContent = text;
   }
 
+  function wertSetzen(feld, wert) {
+    // Ueber den nativen Setter, sonst bekommen Frameworks (React, Vue, Svelte)
+    // die Aenderung nicht mit und ueberschreiben sie beim naechsten Zeichnen.
+    const art = feld instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(art, "value");
+    if (setter && setter.set) setter.set.call(feld, wert);
+    else feld.value = wert;
+  }
+
   function einfuegen(feld, text) {
-    const vorher = feld.value.trimEnd();
-    feld.value = vorher ? vorher + " " + text : text;
-    feld.dispatchEvent(new Event("input", { bubbles: true }));
+    const vorher = (feld.value || "").trimEnd();
+    const wert = vorher ? vorher + " " + text : text;
+
+    try { feld.focus(); } catch (e) { /* egal */ }
+    wertSetzen(feld, wert);
+    try { feld.setSelectionRange(wert.length, wert.length); } catch (e) { /* egal */ }
+
+    // Breit streuen: verschiedene Oberflaechen hoeren auf verschiedene Ereignisse.
+    for (const art of ["input", "change"]) {
+      feld.dispatchEvent(new Event(art, { bubbles: true }));
+    }
+    for (const art of ["keydown", "keyup"]) {
+      feld.dispatchEvent(new KeyboardEvent(art, { bubbles: true, key: " " }));
+    }
+
+    // Kam es an? Sonst sagen wir es, statt still zu versagen.
+    if ((feld.value || "").indexOf(text) === -1) {
+      hinweis(
+        "Der erkannte Text wurde nicht übernommen: \u201e" + text + "\u201c. " +
+        "Das Eingabefeld nimmt ihn nicht an — bitte melden."
+      );
+      return false;
+    }
+    return true;
   }
 
   function start() {
@@ -242,9 +274,10 @@
         else vorlaeufig += stueck;
       }
       if (endgueltig) {
-        bisher = bisher ? bisher + " " + endgueltig.trim() : endgueltig.trim();
-        einfuegen(feld, endgueltig.trim());
-        autoSendenPlanen();
+        const stueck = endgueltig.trim();
+        bisher = bisher ? bisher + " " + stueck : stueck;
+        knopf.setAttribute("title", "zuletzt erkannt: " + stueck);
+        if (einfuegen(feld, stueck)) autoSendenPlanen();
       }
       if (vorlaeufig) {
         feld.setAttribute("placeholder", vorlaeufig.trim());
