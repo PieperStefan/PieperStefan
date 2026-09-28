@@ -24,6 +24,11 @@
 (function () {
   "use strict";
 
+  // Sichtbare Fassungskennung. Sie erscheint klein neben den Knoepfen.
+  // Steht dort nicht dieselbe Kennung wie hier, laeuft eine alte Datei -
+  // dann liegt es nicht am Code, sondern daran, dass er nicht ankommt.
+  const FASSUNG = "G-28.09.";
+
   const CONFIG = {
     // Diese beiden Angaben an die Seite anpassen, falls die Automatik
     // das Falsche findet.
@@ -71,6 +76,10 @@
       .mikrofon-huelle {
         display: block !important;
         box-sizing: border-box;
+      }
+      .mikrofon-fassung {
+        font-size: 11px; color: #6b7a70; margin-inline-start: 4px;
+        font-variant-numeric: tabular-nums; white-space: nowrap;
       }
       .mikrofon-leiste {
         display: flex !important; align-items: center; gap: 8px;
@@ -257,6 +266,13 @@
     }
     autoAnzeigen();
     leiste.appendChild(autoKnopf);
+
+    const kennung = document.createElement("span");
+    kennung.className = "mikrofon-fassung";
+    kennung.textContent = FASSUNG;
+    kennung.title = "Fassung von mikrofon.js";
+    leiste.appendChild(kennung);
+    console.info("[Mikrofon] Fassung", FASSUNG);
     autoKnopf.addEventListener("click", () => {
       autoAn = !autoAn;
       try { localStorage.setItem("hermes-autosenden", autoAn ? "an" : "aus"); }
