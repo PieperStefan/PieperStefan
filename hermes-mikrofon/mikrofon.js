@@ -178,19 +178,27 @@
     knopf.setAttribute("aria-label", "Spracheingabe starten");
     knopf.style.setProperty("--mikrofon-frist", CONFIG.autoSendenNachMs + "ms");
 
-    // Eigene Zeile ueber dem Eingabefeld. Liegt das Feld in einer
-    // Flex- oder Grid-Zeile, setzen wir die Leiste ueber diese Zeile -
-    // sonst wuerde sie sich danebenstellen und das Feld schmal machen.
+    // Eigene Zeile ueber dem Eingabefeld.
+    //
+    // Nicht raten, welches Elternelement die Zeile bildet - das ging schief.
+    // Stattdessen setzen wir die Leiste als erstes Kind direkt neben das Feld
+    // und erzwingen den Umbruch mit den Mitteln des jeweiligen Layouts:
+    // bei Flex ueber flex-wrap und volle Breite, bei Grid ueber die ganze
+    // Spaltenbreite, sonst reicht ein Block-Element mit 100 Prozent.
     const leiste = document.createElement("div");
     leiste.className = "mikrofon-leiste";
     const eltern = feld.parentNode;
-    let anzeige = "";
-    try { anzeige = getComputedStyle(eltern).display; } catch (e) { /* egal */ }
-    if (/flex|grid/.test(anzeige) && eltern.parentNode) {
-      eltern.parentNode.insertBefore(leiste, eltern);
-    } else {
-      eltern.insertBefore(leiste, feld);
-    }
+    eltern.insertBefore(leiste, eltern.firstChild);
+    try {
+      const stil = getComputedStyle(eltern);
+      if (/flex/.test(stil.display)) {
+        eltern.style.flexWrap = "wrap";
+        leiste.style.flex = "1 0 100%";
+      } else if (/grid/.test(stil.display)) {
+        leiste.style.gridColumn = "1 / -1";
+      }
+    } catch (e) { /* Standard greift: Block ueber volle Breite */ }
+
     leiste.appendChild(knopf);
 
     // Knopf fuer das selbsttaetige Absenden
