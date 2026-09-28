@@ -203,12 +203,17 @@
     eltern.insertBefore(leiste, eltern.firstChild);
     try {
       const stil = getComputedStyle(eltern);
+      // Mit "important" gesetzt, sonst kann ein nowrap aus dem Stylesheet
+      // der Seite den Umbruch verhindern und alles bleibt einzeilig.
       if (/flex/.test(stil.display)) {
-        eltern.style.flexWrap = "wrap";
-        leiste.style.flex = "1 0 100%";
+        eltern.style.setProperty("flex-wrap", "wrap", "important");
+        leiste.style.setProperty("flex", "1 0 100%", "important");
+        leiste.style.setProperty("order", "-1", "important");
       } else if (/grid/.test(stil.display)) {
-        leiste.style.gridColumn = "1 / -1";
+        leiste.style.setProperty("grid-column", "1 / -1", "important");
+        leiste.style.setProperty("order", "-1", "important");
       }
+      leiste.style.setProperty("width", "100%", "important");
     } catch (e) { /* Standard greift: Block ueber volle Breite */ }
 
     leiste.appendChild(knopf);
