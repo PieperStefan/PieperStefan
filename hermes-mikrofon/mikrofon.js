@@ -1,9 +1,19 @@
 /*
  * Spracheingabe fuer Handychat Hermes.
  *
- * Fuegt neben dem Eingabefeld einen Mikrofonknopf ein. Antippen startet das
- * Zuhoeren, nochmal antippen beendet es. Gedacht fuer die Bedienung im Auto,
- * deshalb grosse Flaeche und deutlich sichtbarer Zustand.
+ * Fuegt neben dem Eingabefeld zwei Knoepfe ein:
+ *
+ *   Mikrofon  - antippen startet das Zuhoeren, nochmal antippen beendet es.
+ *   Auto      - schaltet das selbsttaetige Absenden an und aus. Der Zustand
+ *               wird im Browser gemerkt.
+ *
+ * Ist Auto an, wird vier Sekunden nach dem letzten gesprochenen Wort
+ * abgeschickt. Ein Ring um den Mikrofonknopf laeuft dabei sichtbar ab und
+ * beginnt von vorn, sobald weitergesprochen wird. Antippen des Mikrofons
+ * bricht ab. Getipptes loest niemals ein Absenden aus - nur Diktiertes.
+ *
+ * Gedacht fuer die Bedienung im Auto, deshalb grosse Flaechen und
+ * deutlich sichtbarer Zustand.
  *
  * Voraussetzung: Die Seite muss ueber HTTPS ausgeliefert werden. Browser
  * geben das Mikrofon auf unverschluesselten Seiten grundsaetzlich nicht
@@ -21,8 +31,9 @@
     sendenKnopf: 'button[type="submit"], #senden',
     sprache: "de-DE",
     // Nach wie vielen Millisekunden Stille automatisch abgeschickt wird.
-    // 0 schaltet das ab; der Text bleibt dann im Feld stehen.
-    autoSendenNachMs: 0,
+    autoSendenNachMs: 4000,
+    // Stellung des Auto-Knopfes beim allerersten Aufruf.
+    autoSendenVoreinstellung: true,
   };
 
   const Erkennung =
@@ -52,7 +63,7 @@
         font-size: 26px; line-height: 1;
         cursor: pointer; touch-action: manipulation;
         display: inline-flex; align-items: center; justify-content: center;
-        margin-inline-end: 8px;
+        margin-inline-end: 8px; position: relative;
       }
       .mikrofon-knopf:disabled { opacity: .45; cursor: not-allowed; }
       .mikrofon-knopf.hoert {
@@ -62,6 +73,26 @@
       @keyframes mikrofon-puls {
         0%,100% { box-shadow: 0 0 0 0 rgba(178,59,59,.65); }
         50%     { box-shadow: 0 0 0 12px rgba(178,59,59,0); }
+      }
+      .mikrofon-knopf.gleich::after {
+        content: ""; position: absolute; inset: -5px;
+        border-radius: 50%; border: 3px solid #e0a13a;
+        animation: mikrofon-ablauf var(--mikrofon-frist, 4s) linear forwards;
+      }
+      @keyframes mikrofon-ablauf {
+        from { clip-path: inset(0 0 0 0); opacity: 1; }
+        to   { clip-path: inset(0 0 100% 0); opacity: .25; }
+      }
+      .auto-knopf {
+        height: 56px; padding: 0 16px;
+        border: 2px solid #4a5a4e; border-radius: 28px;
+        background: #222a24; color: #8a978d;
+        font-size: 15px; font-weight: 600;
+        cursor: pointer; touch-action: manipulation;
+        margin-inline-end: 8px;
+      }
+      .auto-knopf[aria-pressed="true"] {
+        background: #2f5d3a; border-color: #468a56; color: #eaf5ec;
       }
       .mikrofon-hinweis {
         font-size: 13px; line-height: 1.4; padding: 8px 10px; margin: 6px 0;
@@ -107,7 +138,42 @@
     knopf.className = "mikrofon-knopf";
     knopf.textContent = "🎤";
     knopf.setAttribute("aria-label", "Spracheingabe starten");
+    knopf.style.setProperty("--mikrofon-frist", CONFIG.autoSendenNachMs + "ms");
     feld.parentNode.insertBefore(knopf, feld);
+
+    // Knopf fuer das selbsttaetige Absenden
+    const autoKnopf = document.createElement("button");
+    autoKnopf.type = "button";
+    autoKnopf.className = "auto-knopf";
+    const sekunden = Math.round(CONFIG.autoSendenNachMs / 1000);
+    autoKnopf.textContent = "Auto " + sekunden + "s";
+    let autoAn = gemerkt();
+    function gemerkt() {
+      try {
+        const g = localStorage.getItem("hermes-autosenden");
+        if (g === "an") return true;
+        if (g === "aus") return false;
+      } catch (e) { /* Speicher gesperrt */ }
+      return CONFIG.autoSendenVoreinstellung;
+    }
+    function autoAnzeigen() {
+      autoKnopf.setAttribute("aria-pressed", autoAn ? "true" : "false");
+      autoKnopf.setAttribute(
+        "aria-label",
+        autoAn
+          ? "Selbsttätiges Absenden ist an. Antippen schaltet es aus."
+          : "Selbsttätiges Absenden ist aus. Antippen schaltet es an."
+      );
+    }
+    autoAnzeigen();
+    autoKnopf.addEventListener("click", () => {
+      autoAn = !autoAn;
+      try { localStorage.setItem("hermes-autosenden", autoAn ? "an" : "aus"); }
+      catch (e) { /* Speicher gesperrt */ }
+      autoAnzeigen();
+      if (!autoAn) ablaufAbbrechen();
+    });
+    feld.parentNode.insertBefore(autoKnopf, feld);
 
     // Die beiden Faelle, in denen es gar nicht erst losgehen kann.
     if (!window.isSecureContext) {
@@ -136,10 +202,21 @@
     let uhr = null;
     let bisher = "";
 
-    function autoSendenPlanen() {
-      if (!CONFIG.autoSendenNachMs) return;
+    function ablaufAbbrechen() {
       clearTimeout(uhr);
+      uhr = null;
+      knopf.classList.remove("gleich");
+    }
+
+    function autoSendenPlanen() {
+      if (!autoAn || !CONFIG.autoSendenNachMs) return;
+      clearTimeout(uhr);
+      // Ring neu starten: Klasse ab, Umbruch erzwingen, Klasse dran.
+      knopf.classList.remove("gleich");
+      void knopf.offsetWidth;
+      knopf.classList.add("gleich");
       uhr = setTimeout(() => {
+        knopf.classList.remove("gleich");
         stopp();
         const s = knopfFinden();
         if (s) s.click();
@@ -147,7 +224,7 @@
     }
 
     function stopp() {
-      clearTimeout(uhr);
+      ablaufAbbrechen();
       if (hoert) {
         hoert = false;
         try { erk.stop(); } catch (e) { /* bereits gestoppt */ }

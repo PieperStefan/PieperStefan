@@ -51,18 +51,32 @@ größte sichtbare Textfeld und den ersten Absende-Knopf. Prüfe an der
 echten Seite, ob das die richtigen Elemente trifft; falls nicht, trage
 dort passende CSS-Selektoren ein.
 
-Der Knopf wird direkt vor dem Eingabefeld eingefügt, ist 56 × 56 Pixel
-groß und pulst rot, solange er zuhört. Beides ist für die Bedienung im
-Auto so gewählt — bitte nicht verkleinern.
+Beide Knöpfe werden direkt vor dem Eingabefeld eingefügt und sind
+56 Pixel hoch. Das Mikrofon pulst rot, solange es zuhört. Beides ist für
+die Bedienung im Auto so gewählt — bitte nicht verkleinern.
 
-## 4. Auto-Senden
+## 4. Auto-Senden — so ist es eingestellt
 
-`CONFIG.autoSendenNachMs` steht auf 0, also aus. Der Text bleibt nach dem
-Diktat im Feld stehen und ich schicke ihn selbst ab.
+Neben dem Mikrofon sitzt ein zweiter Knopf, beschriftet "Auto 4s". Damit
+entscheide ich je nach Situation selbst:
 
-Frag mich, ob ich das anders will: Ein Wert von etwa 2000 schickt zwei
-Sekunden nach dem letzten gesprochenen Wort automatisch ab. Im Auto ist
-das bequem, kann aber auch ungewollt abschicken.
+- **Auto an** (Voreinstellung, grün): Vier Sekunden nach dem letzten
+  gesprochenen Wort wird abgeschickt. Ein oranger Ring um das Mikrofon
+  läuft sichtbar ab und beginnt von vorn, sobald ich weiterspreche. So
+  sehe ich aus dem Augenwinkel, dass gleich gesendet wird.
+- **Auto aus** (grau): Der Text bleibt im Feld stehen, ich sende selbst.
+
+Die Stellung wird im Browser gemerkt und überlebt das Neuladen.
+
+Antippen des Mikrofons bricht einen laufenden Ablauf ab. Getippter Text
+löst niemals ein Absenden aus — nur Diktiertes.
+
+Geprüft in Chromium: Senden nach Ablauf, kein Senden bei ausgeschaltetem
+Auto, Einstellung übersteht Neuladen, getippter Text bleibt folgenlos.
+
+Falls vier Sekunden im Fahrbetrieb zu knapp oder zu lang sind, ist es die
+Zahl `autoSendenNachMs` im CONFIG-Block. Die Knopfbeschriftung passt sich
+automatisch an.
 
 ## 5. Testen
 
