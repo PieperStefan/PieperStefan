@@ -1,20 +1,38 @@
 # Handychat Hermes: Umbenennen und Spracheingabe einbauen
 
-Führe das bitte vollständig auf diesem Mac aus. Am Ende will ich im
-Browser nur noch neu laden und es sehen.
+**Du läufst auf meinem MacBook Air. Gearbeitet wird auf dem Mac Studio.**
 
-Die Weboberfläche von Hermes läuft auf Port 5108, erreichbar unter
-`http://192.168.1.207:5108`. Ich benutze sie im Auto: chatten und mir die
-Antwort vorlesen lassen. Zwei Dinge sollen sich ändern.
+Der Zielrechner ist per SSH erreichbar:
+
+```bash
+ssh mac-studio.tail0b9854.ts.net
+```
+
+Ich will mich auf dem Mac Studio nicht anmelden und nicht davorsitzen.
+Führe deshalb alle folgenden Schritte über diese SSH-Verbindung aus.
+Prüfe sie als Erstes; klappt sie nicht, sag es mir sofort und fang nicht
+an zu raten.
+
+Am Ende will ich im Browser nur noch neu laden und es sehen.
+
+Die Weboberfläche von Hermes läuft auf dem Mac Studio auf Port 5108,
+erreichbar unter `http://192.168.1.207:5108`. Ich benutze sie im Auto:
+chatten und mir die Antwort vorlesen lassen. Zwei Dinge sollen sich
+ändern.
 
 ---
 
 ## Schritt 0 — Erst herausfinden, womit wir es zu tun haben
 
+Alle Befehle laufen auf dem Mac Studio, also so:
+
 ```bash
-lsof -iTCP:5108 -sTCP:LISTEN          # welcher Prozess, welcher Pfad
-ls -la ~/.hermes/installs/             # Installationen
+ssh mac-studio.tail0b9854.ts.net 'lsof -iTCP:5108 -sTCP:LISTEN'
+ssh mac-studio.tail0b9854.ts.net 'ls -la ~/.hermes/installs/'
 ```
+
+Für längere Arbeiten ist eine dauerhafte Sitzung bequemer als einzelne
+Aufrufe — entscheide selbst, was praktischer ist.
 
 Finde heraus:
 
@@ -36,7 +54,7 @@ Aktuell steht oben links "Hermes Chat". Das soll überall **Handychat
 Hermes** heißen.
 
 ```bash
-grep -rn --binary-files=without-match "Hermes Chat" .
+grep -rn --binary-files=without-match "Hermes Chat" <anwendungsverzeichnis>
 ```
 
 Ändere ausschließlich sichtbaren Text:
@@ -94,15 +112,17 @@ curl -sI https://mac-studio.tail0b9854.ts.net/ | head -3
 
 ## Schritt 3 — Mikrofonknopf einbauen
 
-Die Datei liegt öffentlich abrufbar bereit, kein Zugang nötig:
+Die Datei liegt öffentlich abrufbar bereit, kein Zugang und keine
+Anmeldung nötig. Hole sie direkt auf den Mac Studio:
 
 ```bash
-curl -fsSL -o mikrofon.js \
-  https://raw.githubusercontent.com/PieperStefan/PieperStefan/claude/dxf-from-blueprints-jxtt75/hermes-mikrofon/mikrofon.js
+ssh mac-studio.tail0b9854.ts.net 'curl -fsSL -o /tmp/mikrofon.js \
+  https://raw.githubusercontent.com/PieperStefan/PieperStefan/claude/dxf-from-blueprints-jxtt75/hermes-mikrofon/mikrofon.js'
 ```
 
-Lade sie in das Verzeichnis für statische Dateien, das du in Schritt 0
-gefunden hast, und binde sie in die Chatseite ein, vor `</body>`:
+Verschiebe sie in das Verzeichnis für statische Dateien, das du in
+Schritt 0 gefunden hast, und binde sie in die Chatseite ein, vor
+`</body>`:
 
 ```html
 <script src="/static/mikrofon.js" defer></script>
@@ -145,8 +165,8 @@ curl -s https://mac-studio.tail0b9854.ts.net/ | grep -c "mikrofon.js"
 
 Erwartet: `Handychat Hermes` und eine 1.
 
-Danach im Browser am Mac über die HTTPS-Adresse öffnen, Mikrofon
-antippen, etwas sagen, nochmal antippen. Der Text muss im Eingabefeld
+Danach öffne ich die HTTPS-Adresse im Browser auf dem MacBook Air,
+tippe das Mikrofon an, sage etwas, tippe nochmal an. Der Text muss im Eingabefeld
 stehen. Prüfe auch, dass ein zweites Diktat den ersten Text anhängt und
 nicht überschreibt.
 
@@ -154,6 +174,7 @@ nicht überschreibt.
 
 ## Schritt 5 — Was du mir melden sollst
 
+- ob die SSH-Verbindung zum Mac Studio steht
 - wo die Anwendung liegt und wie der Dienst neu gestartet wird
 - welche Dateien du geändert hast
 - ob HTTPS über Tailscale steht und unter welcher Adresse ich die Seite
