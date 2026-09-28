@@ -233,6 +233,10 @@
     let hoert = false;
     let uhr = null;
     let bisher = "";
+    let neustarts = 0;
+    let notbremse = null;
+    const MAX_NEUSTARTS = 40;     // Schutz gegen eine Endlosschleife
+    const MAX_DAUER_MS = 120000;  // nach zwei Minuten ist Schluss
 
     function ablaufAbbrechen() {
       clearTimeout(uhr);
@@ -255,11 +259,15 @@
       }, CONFIG.autoSendenNachMs);
     }
 
-    function stopp() {
+    function stopp(hart) {
       ablaufAbbrechen();
+      clearTimeout(notbremse);
       if (hoert) {
         hoert = false;
-        try { erk.stop(); } catch (e) { /* bereits gestoppt */ }
+        // abort() gibt das Mikrofon sofort frei, stop() wartet auf das
+        // letzte Ergebnis. Beim Verlassen der Seite zaehlt nur die Freigabe.
+        try { (hart && erk.abort) ? erk.abort() : erk.stop(); }
+        catch (e) { try { erk.abort && erk.abort(); } catch (e2) { /* egal */ } }
       }
       knopf.classList.remove("hoert");
       knopf.setAttribute("aria-label", "Spracheingabe starten");
@@ -299,12 +307,33 @@
       stopp();
     };
 
-    erk.onend = () => { if (hoert) { try { erk.start(); } catch (e) { stopp(); } } };
+    // Nur weiterhoeren, solange die Seite sichtbar ist und wir nicht in einer
+    // Schleife haengen. Sonst bleibt das Mikrofon belegt und kein anderes
+    // Programm auf dem Rechner kommt mehr daran.
+    erk.onend = () => {
+      if (!hoert) return;
+      if (document.visibilityState !== "visible" || ++neustarts > MAX_NEUSTARTS) {
+        stopp(true);
+        return;
+      }
+      try { erk.start(); } catch (e) { stopp(true); }
+    };
+
+    // Mikrofon freigeben, sobald die Seite in den Hintergrund geht,
+    // geschlossen oder das Fenster gewechselt wird.
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) stopp(true);
+    });
+    window.addEventListener("pagehide", () => stopp(true));
+    window.addEventListener("beforeunload", () => stopp(true));
 
     knopf.addEventListener("click", () => {
       if (hoert) { stopp(); return; }
       bisher = "";
+      neustarts = 0;
       hoert = true;
+      clearTimeout(notbremse);
+      notbremse = setTimeout(() => stopp(true), MAX_DAUER_MS);
       knopf.classList.add("hoert");
       knopf.setAttribute("aria-label", "Spracheingabe beenden");
       try {
