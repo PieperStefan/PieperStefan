@@ -68,9 +68,14 @@
     const s = document.createElement("style");
     s.id = "mikrofon-stil";
     s.textContent = `
+      .mikrofon-huelle {
+        display: block !important;
+        box-sizing: border-box;
+      }
       .mikrofon-leiste {
-        display: flex; align-items: center; gap: 8px;
-        width: 100%; margin: 0 0 8px 0;
+        display: flex !important; align-items: center; gap: 8px;
+        width: 100% !important; margin: 0 0 8px 0;
+        flex-wrap: wrap;
       }
       .mikrofon-knopf {
         width: 56px; height: 56px; min-width: 56px;
@@ -199,22 +204,30 @@
     // Spaltenbreite, sonst reicht ein Block-Element mit 100 Prozent.
     const leiste = document.createElement("div");
     leiste.className = "mikrofon-leiste";
-    const eltern = gemeinsamerBehaelter(feld, knopfFinden()) || feld.parentNode;
-    eltern.insertBefore(leiste, eltern.firstChild);
+    // Die Eingabezeile bekommt eine eigene Huelle. Leiste und Zeile stehen
+    // darin als Bloecke untereinander - das kann keine Regel der Seite mehr
+    // verhindern. Vorherige Versuche ueber flex-wrap wurden vom Stylesheet
+    // ueberstimmt, auch mit "important".
+    const zeile = gemeinsamerBehaelter(feld, knopfFinden()) || feld.parentNode;
+    const huelle = document.createElement("div");
+    huelle.className = "mikrofon-huelle";
+
+    // Damit die Huelle den Platz der Zeile einnimmt: deren Layoutangaben
+    // uebernehmen, sonst rutscht sie im Eltern-Flex an die falsche Stelle.
     try {
-      const stil = getComputedStyle(eltern);
-      // Mit "important" gesetzt, sonst kann ein nowrap aus dem Stylesheet
-      // der Seite den Umbruch verhindern und alles bleibt einzeilig.
-      if (/flex/.test(stil.display)) {
-        eltern.style.setProperty("flex-wrap", "wrap", "important");
-        leiste.style.setProperty("flex", "1 0 100%", "important");
-        leiste.style.setProperty("order", "-1", "important");
-      } else if (/grid/.test(stil.display)) {
-        leiste.style.setProperty("grid-column", "1 / -1", "important");
-        leiste.style.setProperty("order", "-1", "important");
+      const z = getComputedStyle(zeile);
+      for (const eig of ["flex", "order", "alignSelf", "gridArea", "width", "maxWidth"]) {
+        if (z[eig] && z[eig] !== "auto" && z[eig] !== "none") huelle.style[eig] = z[eig];
       }
-      leiste.style.setProperty("width", "100%", "important");
-    } catch (e) { /* Standard greift: Block ueber volle Breite */ }
+    } catch (e) { /* egal */ }
+
+    if (zeile.parentNode) {
+      zeile.parentNode.insertBefore(huelle, zeile);
+      huelle.appendChild(leiste);
+      huelle.appendChild(zeile);
+    } else {
+      zeile.insertBefore(leiste, zeile.firstChild);
+    }
 
     leiste.appendChild(knopf);
 
