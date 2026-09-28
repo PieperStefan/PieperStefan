@@ -27,7 +27,7 @@
   const CONFIG = {
     // Diese beiden Angaben an die Seite anpassen, falls die Automatik
     // das Falsche findet.
-    eingabeFeld: "textarea, input[type=text]",
+    eingabeFeld: "textarea, input[type=text], input[type=search], input:not([type])",
     sendenKnopf: 'button[type="submit"], #senden',
     sprache: "de-DE",
     // Nach wie vielen Millisekunden Stille automatisch abgeschickt wird.
@@ -56,6 +56,10 @@
     const s = document.createElement("style");
     s.id = "mikrofon-stil";
     s.textContent = `
+      .mikrofon-leiste {
+        display: flex; align-items: center; gap: 8px;
+        width: 100%; margin: 0 0 8px 0;
+      }
       .mikrofon-knopf {
         width: 56px; height: 56px; min-width: 56px;
         border: 0; border-radius: 50%;
@@ -63,7 +67,7 @@
         font-size: 26px; line-height: 1;
         cursor: pointer; touch-action: manipulation;
         display: inline-flex; align-items: center; justify-content: center;
-        margin-inline-end: 8px; position: relative;
+        position: relative; flex: 0 0 auto;
       }
       .mikrofon-knopf:disabled { opacity: .45; cursor: not-allowed; }
       .mikrofon-knopf.hoert {
@@ -89,7 +93,7 @@
         background: #222a24; color: #8a978d;
         font-size: 15px; font-weight: 600;
         cursor: pointer; touch-action: manipulation;
-        margin-inline-end: 8px;
+        flex: 0 0 auto;
       }
       .auto-knopf[aria-pressed="true"] {
         background: #2f5d3a; border-color: #468a56; color: #eaf5ec;
@@ -114,7 +118,9 @@
       box.id = "mikrofon-hinweis";
       box.className = "mikrofon-hinweis";
       box.setAttribute("role", "status");
-      feld.parentNode.insertBefore(box, feld);
+      const l = document.querySelector(".mikrofon-leiste");
+      if (l && l.parentNode) l.parentNode.insertBefore(box, l);
+      else feld.parentNode.insertBefore(box, feld);
     }
     box.textContent = text;
   }
@@ -171,7 +177,21 @@
     knopf.textContent = "🎤";
     knopf.setAttribute("aria-label", "Spracheingabe starten");
     knopf.style.setProperty("--mikrofon-frist", CONFIG.autoSendenNachMs + "ms");
-    feld.parentNode.insertBefore(knopf, feld);
+
+    // Eigene Zeile ueber dem Eingabefeld. Liegt das Feld in einer
+    // Flex- oder Grid-Zeile, setzen wir die Leiste ueber diese Zeile -
+    // sonst wuerde sie sich danebenstellen und das Feld schmal machen.
+    const leiste = document.createElement("div");
+    leiste.className = "mikrofon-leiste";
+    const eltern = feld.parentNode;
+    let anzeige = "";
+    try { anzeige = getComputedStyle(eltern).display; } catch (e) { /* egal */ }
+    if (/flex|grid/.test(anzeige) && eltern.parentNode) {
+      eltern.parentNode.insertBefore(leiste, eltern);
+    } else {
+      eltern.insertBefore(leiste, feld);
+    }
+    leiste.appendChild(knopf);
 
     // Knopf fuer das selbsttaetige Absenden
     const autoKnopf = document.createElement("button");
@@ -198,6 +218,7 @@
       );
     }
     autoAnzeigen();
+    leiste.appendChild(autoKnopf);
     autoKnopf.addEventListener("click", () => {
       autoAn = !autoAn;
       try { localStorage.setItem("hermes-autosenden", autoAn ? "an" : "aus"); }
@@ -205,7 +226,6 @@
       autoAnzeigen();
       if (!autoAn) ablaufAbbrechen();
     });
-    feld.parentNode.insertBefore(autoKnopf, feld);
 
     // Die beiden Faelle, in denen es gar nicht erst losgehen kann.
     if (!window.isSecureContext) {
