@@ -304,7 +304,8 @@
       if (ereignis.error !== "no-speech") {
         hinweis(texte[ereignis.error] || ("Spracherkennung: " + ereignis.error));
       }
-      stopp();
+      // Im Fehlerfall hart freigeben - der Zustand des Erkenners ist unklar.
+      stopp(true);
     };
 
     // Nur weiterhoeren, solange die Seite sichtbar ist und wir nicht in einer
@@ -339,8 +340,14 @@
       try {
         erk.start();
       } catch (e) {
+        // Haeufigster Fall: der Erkenner laeuft noch und wirft InvalidStateError.
+        // Dann haelt er das Mikrofon weiter - also erzwingen wir die Freigabe,
+        // statt nur unsere eigene Anzeige zurueckzusetzen.
         hoert = false;
+        clearTimeout(notbremse);
+        try { erk.abort && erk.abort(); } catch (e2) { /* egal */ }
         knopf.classList.remove("hoert");
+        knopf.setAttribute("aria-label", "Spracheingabe starten");
         hinweis("Spracherkennung ließ sich nicht starten: " + e.message);
       }
     });
